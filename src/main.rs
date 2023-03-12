@@ -1,22 +1,31 @@
 #[macro_use]
 extern crate rocket;
 
-#[post("/food_log")]
-fn log_food() -> &'static str {
-    "Food logged"
-}
-
-#[get("/food_log/<id>")]
-fn fetch_food_log(id: &str) -> String {
-    format!("Food log fetched: {}", id)
-}
-
-#[get("/food_log")]
-fn fetch_all_food_logs() -> &'static str {
-    "Fetched all food logs"
-}
+pub mod api;
+use crate::api::catalog;
+use crate::api::food_logging;
 
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![log_food, fetch_food_log, fetch_all_food_logs])
+    rocket::build()
+        .mount(
+            "/food_log",
+            routes![
+                food_logging::create,
+                food_logging::fetch,
+                food_logging::fetch_all,
+                food_logging::edit,
+                food_logging::delete
+            ],
+        )
+        .mount(
+            "/catalog",
+            routes![
+                catalog::create,
+                catalog::fetch,
+                catalog::fetch_all,
+                catalog::edit,
+                catalog::delete,
+            ],
+        )
 }
