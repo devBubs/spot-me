@@ -1,6 +1,5 @@
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_dynamodb::Client;
-use futures::executor::block_on;
 
 #[macro_use]
 extern crate rocket;
@@ -12,9 +11,9 @@ use crate::api::catalog;
 use crate::api::food_logging;
 
 #[launch]
-fn rocket() -> _ {
+async fn rocket() -> _ {
     let region_provider = RegionProviderChain::default_provider().or_else("us-east-1");
-    let config = block_on(aws_config::from_env().region(region_provider).load());
+    let config = aws_config::from_env().region(region_provider).load().await;
     let client = Client::new(&config);
     std::env::set_var("ROCKET_ADDRESS", "0.0.0.0");
     rocket::build()

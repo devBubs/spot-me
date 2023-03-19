@@ -1,5 +1,6 @@
 use aws_sdk_dynamodb::Client;
 use rocket::State;
+use uuid::Uuid;
 
 use crate::db::{
     self,
@@ -8,20 +9,21 @@ use crate::db::{
 use rocket::serde::json::Json;
 
 #[post("/", data = "<input>")]
-pub fn create(input: Json<CreateCatalogItemRequest>, client: &State<Client>) -> Json<CatalogItem> {
-    Json(db::catalog::create(client, input.into_inner()))
-    // "Catalog item logged"
+pub async fn create(
+    input: Json<CreateCatalogItemRequest>,
+    client: &State<Client>,
+) -> Json<CatalogItem> {
+    Json(db::catalog::create(&client, input.into_inner()).await)
 }
 
 #[get("/<id>")]
-pub fn fetch(id: &str, client: &State<Client>) -> Json<CatalogItem> {
-    Json(db::catalog::fetch(client, id))
-    // format!("Catalog item fetched: {}", id)
+pub async fn fetch(id: Uuid, client: &State<Client>) -> Json<CatalogItem> {
+    Json(db::catalog::fetch(&client, id).await)
 }
 
 #[get("/")]
-pub fn fetch_all() -> &'static str {
-    "Fetched all Catalog items"
+pub async fn fetch_all(client: &State<Client>) -> Json<Vec<CatalogItem>> {
+    Json(db::catalog::fetch_all(&client).await)
 }
 
 #[post("/<id>")]
