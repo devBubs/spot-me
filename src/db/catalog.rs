@@ -25,7 +25,7 @@ pub struct CatalogItem {
 
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
-pub struct CreateCatalogItemRequest {
+pub struct CatalogItemRequest {
     name: String,
     protein: f32,
     fat: f32,
@@ -63,10 +63,14 @@ pub async fn fetch(client: &Client, id: Uuid) -> CatalogItem {
     convert(&results)
 }
 
-pub async fn create(client: &Client, input: CreateCatalogItemRequest) -> CatalogItem {
-    let id = Uuid::new_v4();
-    let calories = input.protein * 4.0 + input.carbs * 4.0 + input.fat * 8.0;
+pub async fn fetch_all(client: &Client) -> Vec<CatalogItem> {
+    let output = client.scan().table_name(TABLE_NAME).send().await.unwrap();
+    let items = output.items().unwrap();
+    items.to_vec().iter().map(|v| convert(v)).collect()
+}
 
+pub async fn upsert(client: &Client, id: Uuid, input: CatalogItemRequest) -> CatalogItem {
+    let calories = input.protein * 4.0 + input.carbs * 4.0 + input.fat * 8.0;
     let results = client
         .update_item()
         .return_values(ReturnValue::AllNew)
@@ -90,8 +94,15 @@ pub async fn create(client: &Client, input: CreateCatalogItemRequest) -> Catalog
     convert(&results)
 }
 
-pub async fn fetch_all(client: &Client) -> Vec<CatalogItem> {
-    let output = client.scan().table_name(TABLE_NAME).send().await.unwrap();
-    let items = output.items().unwrap();
-    items.to_vec().iter().map(|v| convert(v)).collect()
+pub async fn delete(client: &Client, id: Uuid) -> bool {
+    match client
+        .delete_item()
+        .table_name(TABLE_NAME)
+        .key("id", S(id.to_string()))
+        .send()
+        .await
+    {
+        Ok(_) => true,
+        Err(_) => false,
+    }
 }
