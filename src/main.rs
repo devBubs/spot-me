@@ -36,6 +36,7 @@ async fn rocket() -> _ {
                 catalog::fetch_all,
                 catalog::edit,
                 catalog::delete,
+                catalog::search,
             ],
         )
 }
