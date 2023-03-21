@@ -97,6 +97,6 @@ fn not_found() -> Json<ApiError> {
 fn bad_request() -> Json<ApiError> {
     Json(ApiError {
         status_code: 400,
-        error: "The request parameters appears to be malformed.".to_owned(),
+        error: "This is a bad request. Check the API documentation.".to_owned(),
     })
 }
