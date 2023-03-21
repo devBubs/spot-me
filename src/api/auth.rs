@@ -1,4 +1,5 @@
 use crate::core;
+use crate::core::response::{respond, ApiErrorType, ApiResponse};
 use crate::db;
 use crate::{
     core::oauth::{self, OauthProvider},
@@ -6,7 +7,7 @@ use crate::{
 };
 use aws_sdk_dynamodb::Client;
 use rocket::http::CookieJar;
-use rocket::{serde::json::Json, State};
+use rocket::State;
 use uuid::Uuid;
 
 #[get("/register?<auth_code>&<provider>")]
@@ -15,7 +16,7 @@ pub async fn register(
     provider: OauthProvider,
     client: &State<Client>,
     cookies: &CookieJar<'_>,
-) -> Json<User> {
+) -> ApiResponse<User> {
     // TODO: handle unauthorised flows
     // TODO: handle corner cases
     let access_token = oauth::get_access_token(auth_code, &provider).await;
@@ -24,7 +25,7 @@ pub async fn register(
     let user_id = Uuid::new_v4();
     let created_user = db::user::create(client, user_id, user_info, provider, uid).await;
     core::auth::set_logged_in_user_id(cookies, user_id);
-    Json(created_user)
+    respond(created_user)
 }
 
 #[get("/login?<auth_code>&<provider>")]
@@ -33,22 +34,22 @@ pub async fn log_in(
     provider: OauthProvider,
     client: &State<Client>,
     cookies: &CookieJar<'_>,
-) -> Json<User> {
+) -> ApiResponse<User> {
     // TODO: handle unauthorised flows
     // TODO: handle corner cases
     let access_token = oauth::get_access_token(auth_code, &provider).await;
     let uid = oauth::get_uid(&access_token, &provider).await;
     let user_id = db::user::get_id(client, provider, uid).await.unwrap();
     core::auth::set_logged_in_user_id(cookies, user_id);
-    Json(db::user::fetch(client, user_id).await)
+    respond(db::user::fetch(client, user_id).await)
 }
 
 #[get("/logout")]
-pub async fn log_out(cookies: &CookieJar<'_>) -> Json<User> {
+pub async fn log_out(cookies: &CookieJar<'_>) -> ApiResponse<User> {
     // TODO: handle unauthorised flows
     // TODO: handle corner cases
     core::auth::unset_logged_in_user_id(cookies);
-    Json(db::user::get_logged_out_user())
+    respond(db::user::get_logged_out_user())
 }
 
 #[get("/connect?<auth_code>&<provider>")]
@@ -57,17 +58,20 @@ pub async fn connect_account(
     provider: OauthProvider,
     client: &State<Client>,
     cookies: &CookieJar<'_>,
-) -> Json<User> {
+) -> ApiResponse<User> {
     // TODO: handle unauthorised flows
     let user_id = core::auth::get_logged_in_user_id(cookies).unwrap();
     let access_token = oauth::get_access_token(auth_code, &provider).await;
     let uid = oauth::get_uid(&access_token, &provider).await;
-    Json(db::user::add_connected_account(client, user_id, provider, uid).await)
+    respond(db::user::add_connected_account(client, user_id, provider, uid).await)
 }
 
 #[get("/me")]
-pub async fn me(client: &State<Client>, cookies: &CookieJar<'_>) -> Json<User> {
-    // TODO: handle unauthorised flows
-    let user_id = core::auth::get_logged_in_user_id(cookies).unwrap();
-    Json(db::user::fetch(client, user_id).await)
+pub async fn me(client: &State<Client>, cookies: &CookieJar<'_>) -> ApiResponse<User> {
+    let user_id = core::auth::get_logged_in_user_id(cookies);
+    if let Some(user_id) = user_id {
+        respond(db::user::fetch(client, user_id).await)
+    } else {
+        Err(ApiErrorType::AuthenticationError)
+    }
 }

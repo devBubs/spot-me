@@ -1,13 +1,14 @@
-use aws_config::meta::region::RegionProviderChain;
-use aws_sdk_dynamodb::Client;
-use rocket::serde::json::{json, Value};
-
-#[macro_use]
-extern crate rocket;
-
 pub mod api;
 pub mod core;
 pub mod db;
+
+use crate::core::response::ApiError;
+use aws_config::meta::region::RegionProviderChain;
+use aws_sdk_dynamodb::Client;
+use rocket::serde::json::Json;
+
+#[macro_use]
+extern crate rocket;
 
 #[launch]
 async fn rocket() -> _ {
@@ -38,41 +39,64 @@ async fn rocket() -> _ {
                 api::catalog::search,
             ],
         )
-        .mount("/auth", routes![api::auth::log_in, api::auth::log_out])
+        .mount(
+            "/auth",
+            routes![
+                api::auth::log_in,
+                api::auth::log_out,
+                api::auth::register,
+                api::auth::connect_account,
+                api::auth::me,
+            ],
+        )
         .register(
             "/",
-            catchers![not_authenticated, not_authorized, not_found, bad_request],
+            catchers![
+                fatal,
+                not_authenticated,
+                not_authorized,
+                not_found,
+                bad_request
+            ],
         )
 }
 
+#[catch(500)]
+fn fatal() -> Json<ApiError> {
+    Json(ApiError {
+        status_code: 500,
+        error: "Not your fault. We will look into it. Sorry!".to_owned(),
+    })
+}
+
 #[catch(401)]
-fn not_authenticated() -> Value {
-    json!({
-        "status": "Unauthenticated",
-        "reason": "The request is not authenticated."
+fn not_authenticated() -> Json<ApiError> {
+    Json(ApiError {
+        status_code: 401,
+        error: "The request is not authenticated.".to_owned(),
     })
 }
 
 #[catch(403)]
-fn not_authorized() -> Value {
-    json!({
-        "status": "Unauthorized",
-        "reason": "The request is not authorized to perform this action."
+fn not_authorized() -> Json<ApiError> {
+    Json(ApiError {
+        status_code: 403,
+        error: "The request is not authorized to perform this action.".to_owned(),
     })
 }
 
 #[catch(404)]
-fn not_found() -> Value {
-    json!({
-        "status": "Not Found",
-        "reason": "The resource you are looking for does not exist."
+fn not_found() -> Json<ApiError> {
+    Json(ApiError {
+        status_code: 404,
+        error: "The resource you are looking for does not exist.".to_owned(),
     })
 }
 
 #[catch(400)]
-fn bad_request() -> Value {
-    json!({
-        "status": "Bad Request",
-        "reason": "The request parameters appears to be malformed."
+fn bad_request() -> Json<ApiError> {
+    Json(ApiError {
+        status_code: 400,
+        error: "The request parameters appears to be malformed.".to_owned(),
     })
 }
