@@ -18,7 +18,7 @@ pub enum CatalogItemType {
     USER = 1,
 }
 
-impl std::str::FromStr for CatalogItemType {
+impl FromStr for CatalogItemType {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -54,7 +54,7 @@ pub struct CatalogItem {
 
 #[derive(Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
-pub struct CatalogItemRequest {
+pub struct CatalogItemUpsertRequest {
     pub name: String,
     pub protein: f32,
     pub fat: f32,
@@ -106,9 +106,9 @@ pub async fn fetch_all(client: &Client) -> Vec<CatalogItem> {
     items.to_vec().iter().map(|v| convert(v)).collect()
 }
 
-pub async fn upsert(client: &Client, id: Uuid, input: CatalogItemRequest) -> CatalogItem {
+pub async fn upsert(client: &Client, id: Uuid, input: CatalogItemUpsertRequest) -> CatalogItem {
     let calories = input.protein * 4.0 + input.carbs * 4.0 + input.fat * 8.0;
-    let results = client
+    let result = client
         .update_item()
         .return_values(ReturnValue::AllNew)
         .table_name(TABLE_NAME)
@@ -129,7 +129,7 @@ pub async fn upsert(client: &Client, id: Uuid, input: CatalogItemRequest) -> Cat
         .attributes()
         .unwrap()
         .clone();
-    convert(&results)
+    convert(&result)
 }
 
 pub async fn delete(client: &Client, id: Uuid) -> bool {

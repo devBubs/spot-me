@@ -5,10 +5,8 @@ use aws_sdk_dynamodb::Client;
 extern crate rocket;
 
 pub mod api;
+pub mod core;
 pub mod db;
-
-use crate::api::catalog;
-use crate::api::food_logging;
 
 #[launch]
 async fn rocket() -> _ {
@@ -21,22 +19,23 @@ async fn rocket() -> _ {
         .mount(
             "/food_log",
             routes![
-                food_logging::create,
-                food_logging::fetch,
-                food_logging::fetch_all,
-                food_logging::edit,
-                food_logging::delete
+                api::food_logging::create,
+                api::food_logging::fetch,
+                api::food_logging::fetch_all,
+                api::food_logging::edit,
+                api::food_logging::delete
             ],
         )
         .mount(
             "/catalog",
             routes![
-                catalog::create,
-                catalog::fetch,
-                catalog::fetch_all,
-                catalog::edit,
-                catalog::delete,
-                catalog::search,
+                api::catalog::create,
+                api::catalog::fetch,
+                api::catalog::fetch_all,
+                api::catalog::edit,
+                api::catalog::delete,
+                api::catalog::search,
             ],
         )
+        .mount("/auth", routes![api::auth::log_in, api::auth::log_out])
 }

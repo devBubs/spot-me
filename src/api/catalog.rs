@@ -4,12 +4,15 @@ use uuid::Uuid;
 
 use crate::db::{
     self,
-    catalog::{CatalogItem, CatalogItemRequest, CatalogItemType},
+    catalog::{CatalogItem, CatalogItemType, CatalogItemUpsertRequest},
 };
 use rocket::serde::json::Json;
 
 #[post("/", data = "<input>")]
-pub async fn create(input: Json<CatalogItemRequest>, client: &State<Client>) -> Json<CatalogItem> {
+pub async fn create(
+    input: Json<CatalogItemUpsertRequest>,
+    client: &State<Client>,
+) -> Json<CatalogItem> {
     let input = input.into_inner();
     assert!(matches!(input.item_type, CatalogItemType::GLOBAL));
     Json(db::catalog::upsert(&client, Uuid::new_v4(), input).await)
@@ -28,7 +31,7 @@ pub async fn fetch_all(client: &State<Client>) -> Json<Vec<CatalogItem>> {
 #[post("/<id>", data = "<input>")]
 pub async fn edit(
     id: Uuid,
-    input: Json<CatalogItemRequest>,
+    input: Json<CatalogItemUpsertRequest>,
     client: &State<Client>,
 ) -> Json<CatalogItem> {
     Json(db::catalog::upsert(&client, id, input.into_inner()).await)
