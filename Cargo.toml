@@ -14,7 +14,7 @@ strum = { version = "0.21", features = ["derive"] }
 
 [dependencies.rocket]
 version = "0.5.0-rc.2"
-features = ["json","uuid"]
+features = ["json","uuid", "secrets"]
 
 
 [dependencies.uuid]

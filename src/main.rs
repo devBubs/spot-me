@@ -1,5 +1,6 @@
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_dynamodb::Client;
+use rocket::serde::json::{json, Value};
 
 #[macro_use]
 extern crate rocket;
@@ -38,4 +39,40 @@ async fn rocket() -> _ {
             ],
         )
         .mount("/auth", routes![api::auth::log_in, api::auth::log_out])
+        .register(
+            "/",
+            catchers![not_authenticated, not_authorized, not_found, bad_request],
+        )
+}
+
+#[catch(401)]
+fn not_authenticated() -> Value {
+    json!({
+        "status": "Unauthenticated",
+        "reason": "The request is not authenticated."
+    })
+}
+
+#[catch(403)]
+fn not_authorized() -> Value {
+    json!({
+        "status": "Unauthorized",
+        "reason": "The request is not authorized to perform this action."
+    })
+}
+
+#[catch(404)]
+fn not_found() -> Value {
+    json!({
+        "status": "Not Found",
+        "reason": "The resource you are looking for does not exist."
+    })
+}
+
+#[catch(400)]
+fn bad_request() -> Value {
+    json!({
+        "status": "Bad Request",
+        "reason": "The request parameters appears to be malformed."
+    })
 }
