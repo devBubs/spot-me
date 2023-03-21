@@ -19,7 +19,7 @@ async fn rocket() -> _ {
     rocket::build()
         .manage(client)
         .mount(
-            "/food_log",
+            "/api/food_log",
             routes![
                 api::food_logging::create,
                 api::food_logging::fetch,
@@ -29,7 +29,7 @@ async fn rocket() -> _ {
             ],
         )
         .mount(
-            "/catalog",
+            "/api/catalog",
             routes![
                 api::catalog::create,
                 api::catalog::fetch,
@@ -40,7 +40,7 @@ async fn rocket() -> _ {
             ],
         )
         .mount(
-            "/auth",
+            "/api/auth",
             routes![
                 api::auth::log_in,
                 api::auth::log_out,
@@ -50,7 +50,7 @@ async fn rocket() -> _ {
             ],
         )
         .register(
-            "/",
+            "/api/",
             catchers![
                 fatal,
                 not_authenticated,
