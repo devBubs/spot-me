@@ -1,10 +1,8 @@
-use crate::core::response::{respond, ApiResponse};
+use crate::core::response::respond;
+use crate::core::{auth, oauth};
 use crate::db;
-use crate::{
-    core::auth,
-    core::oauth::{self, OauthProvider},
-    db::user::User,
-};
+use crate::model::io::ApiResponse;
+use crate::model::{OauthProvider, User};
 use aws_sdk_dynamodb::Client;
 use rocket::http::CookieJar;
 use rocket::State;
@@ -39,7 +37,7 @@ pub async fn log_in(
     // TODO: handle unregistered case
     let access_token = oauth::get_access_token(auth_code, &provider).await;
     let uid = oauth::get_uid(&access_token, &provider).await;
-    let user_id = db::user::get_id(client, provider, uid).await.unwrap();
+    let user_id = db::user::get_id(client, provider, uid).unwrap();
     auth::set_logged_in_user_id(cookies, user_id)?;
     respond(db::user::fetch(client, user_id).await)
 }

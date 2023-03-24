@@ -1,4 +1,4 @@
-use crate::core::oauth::{OauthProvider, OauthUserInfo};
+use crate::model::{io::UserUpsertRequest, OauthProvider, OauthUserInfo, User};
 use aws_sdk_dynamodb::{
     model::{
         AttributeValue::{self, M, S},
@@ -6,7 +6,6 @@ use aws_sdk_dynamodb::{
     },
     Client,
 };
-use rocket::serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -17,28 +16,10 @@ const LOGGED_OUT_USER_FIRST_NAME: &str = "Annonymous";
 const LOGGED_OUT_USER_LAST_NAME: &str = "Guest";
 const LOGGED_OUT_EMAIL: &str = "dummy@dummy.com";
 
-#[derive(Serialize, Deserialize)]
-#[serde(crate = "rocket::serde")]
-pub struct User {
-    pub id: Uuid,
-    pub first_name: String,
-    pub last_name: String,
-    pub email: String,
-    pub connected_accounts: HashMap<String, String>,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(crate = "rocket::serde")]
-pub struct UserUpsertRequest {
-    pub first_name: String,
-    pub last_name: String,
-    pub email: String,
-}
-
-pub async fn get_id(_client: &Client, _provider: OauthProvider, _uid: String) -> Option<Uuid> {
+pub fn get_id(_client: &Client, _provider: OauthProvider, _uid: String) -> Option<Uuid> {
     // TODO: redesign user table to make provider+uid lookup efficient
     // TODO: implement this using the gsi
-    None
+    todo!()
 }
 
 pub async fn fetch(client: &Client, id: Uuid) -> User {

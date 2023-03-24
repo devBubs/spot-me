@@ -1,9 +1,8 @@
 use crate::core::auth;
-use crate::core::response::{respond, ApiResponse};
-use crate::db::{
-    self,
-    catalog::{CatalogItem, CatalogItemType, CatalogItemUpsertRequest},
-};
+use crate::core::response::respond;
+use crate::db;
+use crate::model::io::{ApiErrorType, ApiResponse, CatalogItemUpsertRequest};
+use crate::model::{CatalogItem, CatalogItemType};
 use aws_sdk_dynamodb::Client;
 use rocket::http::CookieJar;
 use rocket::serde::json::Json;
@@ -38,7 +37,7 @@ pub async fn fetch(
     if let CatalogItemType::GLOBAL = item.item_type {
         respond(item)
     } else {
-        Err(crate::core::response::ApiErrorType::AuthorizationError)
+        Err(ApiErrorType::AuthorizationError)
     }
 }
 

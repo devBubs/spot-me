@@ -1,7 +1,7 @@
 use rocket::http::{Cookie, CookieJar};
 use uuid::Uuid;
 
-use super::response::ApiErrorType;
+use crate::model::io::ApiErrorType;
 
 const USER_ID_COOKIE_NAME: &str = "user_id";
 const ADMIN_USER_IDS: &[&str] = &["r2's ID", "c2's ID"];

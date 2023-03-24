@@ -1,25 +1,8 @@
 pub mod google_oauth;
 
-use serde::{Deserialize, Serialize};
 use std::{fmt, str::FromStr};
-use strum::EnumIter;
 
-#[derive(Serialize, Deserialize)]
-#[serde(crate = "rocket::serde")]
-pub struct OauthUserInfo {
-    pub first_name: String,
-    pub last_name: String,
-    pub email: String,
-}
-
-#[derive(Serialize, Deserialize, FromFormField, EnumIter)]
-#[serde(crate = "rocket::serde")]
-pub enum OauthProvider {
-    GOOGLE = 0,
-    GITHUB = 1,
-    MICROSOFT = 2,
-    FACEBOOK = 3,
-}
+use crate::model::{OauthProvider, OauthUserInfo};
 
 impl FromStr for OauthProvider {
     type Err = String;
@@ -60,7 +43,7 @@ pub async fn get_uid(access_token: &str, provider: &OauthProvider) -> String {
 }
 pub async fn get_info(access_token: &str, provider: &OauthProvider) -> OauthUserInfo {
     match provider {
-        OauthProvider::GOOGLE => google_oauth::get_info(access_token).await,
+        OauthProvider::GOOGLE => google_oauth::get_info(access_token),
         _ => panic!("Invalid provider"),
     }
 }

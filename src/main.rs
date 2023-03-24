@@ -1,11 +1,10 @@
 pub mod api;
 pub mod core;
 pub mod db;
+pub mod model;
 
-use crate::core::response::ApiError;
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_dynamodb::Client;
-use rocket::serde::json::Json;
 
 #[macro_use]
 extern crate rocket;
@@ -52,51 +51,11 @@ async fn rocket() -> _ {
         .register(
             "/api/",
             catchers![
-                fatal,
-                not_authenticated,
-                not_authorized,
-                not_found,
-                bad_request
+                api::fatal,
+                api::not_authenticated,
+                api::not_authorized,
+                api::not_found,
+                api::bad_request
             ],
         )
-}
-
-#[catch(500)]
-fn fatal() -> Json<ApiError> {
-    Json(ApiError {
-        status_code: 500,
-        error: "Not your fault. We will look into it. Sorry!".to_owned(),
-    })
-}
-
-#[catch(401)]
-fn not_authenticated() -> Json<ApiError> {
-    Json(ApiError {
-        status_code: 401,
-        error: "The request is not authenticated.".to_owned(),
-    })
-}
-
-#[catch(403)]
-fn not_authorized() -> Json<ApiError> {
-    Json(ApiError {
-        status_code: 403,
-        error: "The request is not authorized to perform this action.".to_owned(),
-    })
-}
-
-#[catch(404)]
-fn not_found() -> Json<ApiError> {
-    Json(ApiError {
-        status_code: 404,
-        error: "The resource you are looking for does not exist.".to_owned(),
-    })
-}
-
-#[catch(400)]
-fn bad_request() -> Json<ApiError> {
-    Json(ApiError {
-        status_code: 400,
-        error: "This is a bad request. Check the API documentation.".to_owned(),
-    })
 }

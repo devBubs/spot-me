@@ -5,18 +5,12 @@ use aws_sdk_dynamodb::{
     },
     Client,
 };
-use rocket::serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt, str::FromStr};
 use uuid::Uuid;
 
-const TABLE_NAME: &str = "spot-me.catalog";
+use crate::model::{io::CatalogItemUpsertRequest, CatalogItem, CatalogItemType};
 
-#[derive(Serialize, Deserialize)]
-#[serde(crate = "rocket::serde")]
-pub enum CatalogItemType {
-    GLOBAL = 0,
-    USER = 1,
-}
+const TABLE_NAME: &str = "spot-me.catalog";
 
 impl FromStr for CatalogItemType {
     type Err = String;
@@ -37,29 +31,6 @@ impl fmt::Display for CatalogItemType {
             CatalogItemType::USER => write!(f, "USER"),
         }
     }
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(crate = "rocket::serde")]
-pub struct CatalogItem {
-    pub id: Uuid,
-    pub item_type: CatalogItemType,
-    pub user_id: Option<Uuid>,
-    pub name: String,
-    pub protein: f32,
-    pub fat: f32,
-    pub carbs: f32,
-    pub calories: i32,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(crate = "rocket::serde")]
-pub struct CatalogItemUpsertRequest {
-    pub name: String,
-    pub protein: f32,
-    pub fat: f32,
-    pub carbs: f32,
-    pub item_type: CatalogItemType,
 }
 
 fn convert(output: &HashMap<String, AttributeValue>) -> CatalogItem {
