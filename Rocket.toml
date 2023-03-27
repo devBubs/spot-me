@@ -1,0 +1,5 @@
+[default]
+port = 443
+[default.tls]
+certs = "/home/ec2-user/spotmee.co.crt"
+key = "/home/ec2-user/spotmee.co_key.txt"
