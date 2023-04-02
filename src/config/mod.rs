@@ -1,3 +1,5 @@
+use std::env;
+
 use rocket::figment::{
     providers::{Format, Toml},
     Figment,
@@ -27,6 +29,7 @@ pub struct RawRustyConfig {
     pub google_client_secret_uri: String,
     pub aws_client_id_uri: String,
     pub aws_client_secret_uri: String,
+    pub rocket_secret_key_uri: String,
 }
 
 pub async fn get_rusty_config() -> RustyConfig {
@@ -39,6 +42,12 @@ pub async fn get_rusty_config() -> RustyConfig {
         .focus(profile)
         .extract()
         .expect("Config not found");
+    if let "release" = profile {
+        env::set_var(
+            "ROCKET_SECRET_KEY",
+            fetch_from_file(&config.rocket_secret_key_uri).await,
+        );
+    }
     RustyConfig {
         google_redirection_url_login: config.google_redirection_url_login,
         google_redirection_url_register: config.google_redirection_url_register,
