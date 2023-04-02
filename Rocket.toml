@@ -6,7 +6,7 @@ port = 8000
 
 [release]
 port = 443
-[prod.tls]
+[release.tls]
 certs = "/home/ec2-user/spotmee.co.crt"
 key = "/home/ec2-user/spotmee.co_key.txt"
 
