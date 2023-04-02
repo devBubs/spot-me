@@ -3,6 +3,8 @@ use rocket::serde::json::Json;
 use serde::{Deserialize, Serialize};
 
 pub type ApiResponse<T> = Result<Json<ApiResult<T>>, ApiErrorType>;
+
+#[derive(Debug)]
 pub enum ApiErrorType {
     AuthenticationError,
     AuthorizationError,

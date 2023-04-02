@@ -20,7 +20,7 @@ pub enum OauthProvider {
     FACEBOOK = 3,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct User {
     pub id: Uuid,
     pub first_name: String,
