@@ -1,20 +1,18 @@
-use std::collections::HashMap;
-
-use serde::{Deserialize, Serialize};
-use uuid::Uuid;
-
 pub mod io;
 
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use uuid::Uuid;
+
 #[derive(Serialize, Deserialize)]
-#[serde(crate = "rocket::serde")]
 pub struct OauthUserInfo {
+    pub uid: String,
     pub first_name: String,
     pub last_name: String,
     pub email: String,
 }
 
-#[derive(Serialize, Deserialize, FromFormField)]
-#[serde(crate = "rocket::serde")]
+#[derive(Serialize, Deserialize)]
 pub enum OauthProvider {
     GOOGLE = 0,
     GITHUB = 1,
@@ -23,7 +21,6 @@ pub enum OauthProvider {
 }
 
 #[derive(Serialize, Deserialize)]
-#[serde(crate = "rocket::serde")]
 pub struct User {
     pub id: Uuid,
     pub first_name: String,
@@ -33,7 +30,6 @@ pub struct User {
 }
 
 #[derive(Serialize, Deserialize)]
-#[serde(crate = "rocket::serde")]
 pub struct CatalogItem {
     pub id: Uuid,
     pub item_type: CatalogItemType,
@@ -46,7 +42,6 @@ pub struct CatalogItem {
 }
 
 #[derive(Serialize, Deserialize)]
-#[serde(crate = "rocket::serde")]
 pub enum CatalogItemType {
     GLOBAL = 0,
     USER = 1,

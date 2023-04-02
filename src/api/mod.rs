@@ -1,10 +1,35 @@
-use rocket::serde::json::Json;
+use std::path::Path;
 
 use crate::model::io::ApiError;
+use rocket::fs::{relative, FileServer};
+use rocket::{
+    fairing::{Fairing, Info, Kind},
+    fs::NamedFile,
+    http::Header,
+    serde::json::Json,
+    Catcher, Request, Response, Route,
+};
 
 pub mod auth;
 pub mod catalog;
 pub mod food_logging;
+
+pub fn get_all_catchers() -> Vec<Catcher> {
+    catchers![
+        fatal,
+        not_authenticated,
+        not_authorized,
+        not_found,
+        bad_request
+    ]
+}
+
+pub fn get_all_static_routes() -> Vec<Route> {
+    let index_route: Vec<Route> = routes![serve_index];
+    let mut all_asset_routes: Vec<Route> = FileServer::from(relative!("static/web")).into();
+    all_asset_routes.extend(index_route.into_iter());
+    return all_asset_routes;
+}
 
 #[catch(500)]
 pub fn fatal() -> Json<ApiError> {
@@ -44,4 +69,26 @@ pub fn bad_request() -> Json<ApiError> {
         status_code: 400,
         error: "This is a bad request. Check the API documentation.".to_owned(),
     })
+}
+
+pub struct CorsFairing;
+
+#[rocket::async_trait]
+impl Fairing for CorsFairing {
+    fn info(&self) -> Info {
+        Info {
+            name: "CORS Fairing",
+            kind: Kind::Response,
+        }
+    }
+
+    async fn on_response<'r>(&self, _req: &'r Request<'_>, res: &mut Response<'r>) {
+        res.set_header(Header::new("Access-Control-Allow-Origin", "*"));
+    }
+}
+
+#[get("/")]
+async fn serve_index() -> Option<NamedFile> {
+    let path = Path::new("static/web/index.html");
+    NamedFile::open(path).await.ok()
 }

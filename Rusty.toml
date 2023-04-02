@@ -1,0 +1,17 @@
+[debug]
+google_redirection_url_login = "http://localhost:8000/api/auth/google/login"
+google_redirection_url_register = "http://localhost:8000/api/auth/google/register"
+google_redirection_url_connect = "http://localhost:8000/api/auth/google/connect"
+google_client_id_uri = "./static/secrets/google_client_id"
+google_client_secret_uri = "./static/secrets/google_client_secret"
+aws_client_id_uri = "./static/secrets/aws_client_id"
+aws_client_secret_uri = "./static/secrets/aws_client_secret"
+
+[release]
+google_redirection_url_login = "https://spotmee.co/api/auth/google/login"
+google_redirection_url_register = "https://spotmee.co/api/auth/google/register"
+google_redirection_url_connect = "https://spotmee.co/api/auth/google/connect"
+google_client_id_uri = "./static/secrets/google_client_id"
+google_client_secret_uri = "./static/secrets/google_client_secret"
+aws_client_id_uri = "./static/secrets/aws_client_id"
+aws_client_secret_uri = "./static/secrets/aws_client_secret"

@@ -1,61 +1,29 @@
 pub mod api;
+pub mod config;
 pub mod core;
 pub mod db;
 pub mod model;
 
-use aws_config::meta::region::RegionProviderChain;
-use aws_sdk_dynamodb::Client;
-
 #[macro_use]
 extern crate rocket;
 
+// TODO: remove all unwraps
+// TODO: convert all sync ios to async
+// TODO: switch to newer module format
+// TODO: refactor all use statements
+// TODO: use references instead of moving data
+
 #[launch]
 async fn rocket() -> _ {
-    let region_provider = RegionProviderChain::default_provider().or_else("us-east-1");
-    let config = aws_config::from_env().region(region_provider).load().await;
-    let client = Client::new(&config);
-    std::env::set_var("ROCKET_ADDRESS", "0.0.0.0");
+    let config = config::get_rusty_config().await;
     rocket::build()
-        .manage(client)
-        .mount(
-            "/api/food_log",
-            routes![
-                api::food_logging::create,
-                api::food_logging::fetch,
-                api::food_logging::fetch_all,
-                api::food_logging::edit,
-                api::food_logging::delete
-            ],
-        )
-        .mount(
-            "/api/catalog",
-            routes![
-                api::catalog::create,
-                api::catalog::fetch,
-                api::catalog::fetch_all,
-                api::catalog::edit,
-                api::catalog::delete,
-                api::catalog::search,
-            ],
-        )
-        .mount(
-            "/api/auth",
-            routes![
-                api::auth::log_in,
-                api::auth::log_out,
-                api::auth::register,
-                api::auth::connect_account,
-                api::auth::me,
-            ],
-        )
-        .register(
-            "/api/",
-            catchers![
-                api::fatal,
-                api::not_authenticated,
-                api::not_authorized,
-                api::not_found,
-                api::bad_request
-            ],
-        )
+        .manage(db::get_ddb_client(&config).await)
+        .manage(config)
+        .mount("/api/food_log", api::food_logging::get_all_routes())
+        .mount("/api/catalog", api::catalog::get_all_routes())
+        .mount("/api/auth", api::auth::get_all_routes())
+        .mount("/", api::get_all_static_routes())
+        .register("/api/", api::get_all_catchers())
+        // TODO: verify if this is safe
+        .attach(api::CorsFairing)
 }
