@@ -6,11 +6,15 @@ use crate::model::{CatalogItem, CatalogItemType};
 use aws_sdk_dynamodb::Client;
 use rocket::http::CookieJar;
 use rocket::serde::json::Json;
-use rocket::State;
+use rocket::{Route, State};
 use uuid::Uuid;
 
 // TODO: Add support for User specific catalog items
 // TODO: Add support for nested catalog items
+
+pub fn get_all_routes() -> Vec<Route> {
+    routes![create, fetch, fetch_all, edit, delete, search]
+}
 
 #[post("/", data = "<input>")]
 pub async fn create(
@@ -21,9 +25,7 @@ pub async fn create(
     assert!(matches!(input.item_type, CatalogItemType::GLOBAL));
     let user_id = auth::get_logged_in_user_id(cookies)?;
     auth::assert_is_admin(user_id)?;
-
-    let input = input.into_inner();
-    respond(db::catalog::upsert(&client, Uuid::new_v4(), input).await)
+    respond(db::catalog::upsert(&client, Uuid::new_v4(), input.into_inner()).await)
 }
 
 #[get("/<id>")]
