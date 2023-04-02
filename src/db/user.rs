@@ -1,7 +1,4 @@
-use crate::model::{
-    io::{ApiErrorType, UserUpsertRequest},
-    OauthProvider, OauthUserInfo, User,
-};
+use crate::model::{io::UserUpsertRequest, OauthProvider, OauthUserInfo, User};
 use aws_sdk_dynamodb::{
     model::{
         AttributeValue::{self, M, S},
@@ -19,11 +16,7 @@ const LOGGED_OUT_USER_FIRST_NAME: &str = "Annonymous";
 const LOGGED_OUT_USER_LAST_NAME: &str = "Guest";
 const LOGGED_OUT_EMAIL: &str = "dummy@dummy.com";
 
-pub async fn get_id(
-    client: &Client,
-    provider: OauthProvider,
-    uid: String,
-) -> Result<Uuid, ApiErrorType> {
+pub async fn get_id(client: &Client, provider: &OauthProvider, uid: &str) -> Option<User> {
     // TODO: redesign user table to make provider+uid lookup efficient
     // TODO: implement this using the gsi
     let users = fetch_all(client).await;
@@ -37,15 +30,22 @@ pub async fn get_id(
             }
         })
         .collect::<Vec<User>>();
-    if matched_users.len() != 1 {
-        println!(
-            "Login failed as num of matched users = {}",
-            matched_users.len()
-        );
-        Err(ApiErrorType::ValidationError)
-    } else {
-        Ok(matched_users.first().unwrap().id)
+    if matched_users.len() > 1 {
+        panic!("Duplicate users found!!!");
     }
+    matched_users.first().cloned()
+}
+
+pub async fn get_or_create(
+    client: &Client,
+    provider: &OauthProvider,
+    user_info: &OauthUserInfo,
+) -> User {
+    let uid = user_info.uid.as_ref();
+    if let Some(user) = get_id(client, provider, uid).await {
+        return user;
+    }
+    create(client, Uuid::new_v4(), user_info, provider, uid).await
 }
 
 pub async fn fetch_all(client: &Client) -> Vec<User> {
@@ -72,7 +72,7 @@ pub async fn create(
     client: &Client,
     id: Uuid,
     input: &OauthUserInfo,
-    provider: OauthProvider,
+    provider: &OauthProvider,
     uid: &str,
 ) -> User {
     let mut connected_accounts = HashMap::new();
