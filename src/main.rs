@@ -26,4 +26,5 @@ async fn rocket() -> _ {
         .register("/api/", api::get_all_catchers())
         // TODO: verify if this is safe
         .attach(api::CorsFairing)
+        .attach(api::NoCacheFairing)
 }

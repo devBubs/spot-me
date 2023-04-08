@@ -1,10 +1,9 @@
-use crate::core::auth;
+use crate::core::auth::{self, Authenticated};
 use crate::core::response::respond;
 use crate::db;
 use crate::model::io::{ApiErrorType, ApiResponse, CatalogItemUpsertRequest};
 use crate::model::{CatalogItem, CatalogItemType};
 use aws_sdk_dynamodb::Client;
-use rocket::http::CookieJar;
 use rocket::serde::json::Json;
 use rocket::{Route, State};
 use uuid::Uuid;
@@ -20,10 +19,10 @@ pub fn get_all_routes() -> Vec<Route> {
 pub async fn create(
     input: Json<CatalogItemUpsertRequest>,
     client: &State<Client>,
-    cookies: &CookieJar<'_>,
+    credentials: Authenticated,
 ) -> ApiResponse<CatalogItem> {
     assert!(matches!(input.item_type, CatalogItemType::GLOBAL));
-    let user_id = auth::get_logged_in_user_id(cookies)?;
+    let user_id = credentials.user_id;
     auth::assert_is_admin(user_id)?;
     respond(db::catalog::upsert(&client, Uuid::new_v4(), input.into_inner()).await)
 }
@@ -32,9 +31,8 @@ pub async fn create(
 pub async fn fetch(
     id: Uuid,
     client: &State<Client>,
-    cookies: &CookieJar<'_>,
+    _credentials: Authenticated,
 ) -> ApiResponse<CatalogItem> {
-    auth::get_logged_in_user_id(cookies)?;
     let item = db::catalog::fetch(&client, id).await;
     if let CatalogItemType::GLOBAL = item.item_type {
         respond(item)
@@ -46,9 +44,8 @@ pub async fn fetch(
 #[get("/")]
 pub async fn fetch_all(
     client: &State<Client>,
-    cookies: &CookieJar<'_>,
+    _credentials: Authenticated,
 ) -> ApiResponse<Vec<CatalogItem>> {
-    auth::get_logged_in_user_id(cookies)?;
     let items = db::catalog::fetch_all(&client).await;
     respond(filter_only_globals(items))
 }
@@ -58,9 +55,9 @@ pub async fn edit(
     id: Uuid,
     input: Json<CatalogItemUpsertRequest>,
     client: &State<Client>,
-    cookies: &CookieJar<'_>,
+    credentials: Authenticated,
 ) -> ApiResponse<CatalogItem> {
-    let user_id = auth::get_logged_in_user_id(cookies)?;
+    let user_id = credentials.user_id;
     auth::assert_is_admin(user_id)?;
     respond(db::catalog::upsert(&client, id, input.into_inner()).await)
 }
@@ -69,9 +66,9 @@ pub async fn edit(
 pub async fn delete(
     id: Uuid,
     client: &State<Client>,
-    cookies: &CookieJar<'_>,
+    credentials: Authenticated,
 ) -> ApiResponse<bool> {
-    let user_id = auth::get_logged_in_user_id(cookies)?;
+    let user_id = credentials.user_id;
     auth::assert_is_admin(user_id)?;
     respond(db::catalog::delete(&client, id).await)
 }
@@ -80,9 +77,8 @@ pub async fn delete(
 pub async fn search(
     prefix: Option<&str>,
     client: &State<Client>,
-    cookies: &CookieJar<'_>,
+    _credentials: Authenticated,
 ) -> ApiResponse<Vec<CatalogItem>> {
-    auth::get_logged_in_user_id(cookies)?;
     let items = match prefix {
         Some(prefix) => db::catalog::search(&client, prefix).await,
         None => db::catalog::fetch_all(&client).await,

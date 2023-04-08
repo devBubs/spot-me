@@ -87,6 +87,25 @@ impl Fairing for CorsFairing {
     }
 }
 
+pub struct NoCacheFairing;
+
+#[rocket::async_trait]
+impl Fairing for NoCacheFairing {
+    fn info(&self) -> Info {
+        Info {
+            name: "No-Cache Fairing",
+            kind: Kind::Response,
+        }
+    }
+
+    async fn on_response<'r>(&self, req: &'r Request<'_>, res: &mut Response<'r>) {
+        let route_name = req.route().unwrap().clone().name.unwrap().to_string();
+        if route_name == "get_token" {
+            res.set_raw_header("Cache-Control", "no-store");
+        }
+    }
+}
+
 #[get("/")]
 async fn serve_index() -> Option<NamedFile> {
     let path = Path::new("static/web/index.html");

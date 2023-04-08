@@ -1,5 +1,5 @@
 use super::CatalogItemType;
-use rocket::serde::json::Json;
+use rocket::{http::Status, serde::json::Json};
 use serde::{Deserialize, Serialize};
 
 pub type ApiResponse<T> = Result<Json<ApiResult<T>>, ApiErrorType>;
@@ -10,6 +10,17 @@ pub enum ApiErrorType {
     AuthorizationError,
     ValidationError,
     UnknownError,
+}
+
+impl ApiErrorType {
+    pub fn get_status(&self) -> Status {
+        match self {
+            ApiErrorType::AuthenticationError => Status::Unauthorized,
+            ApiErrorType::AuthorizationError => Status::Forbidden,
+            ApiErrorType::ValidationError => Status::BadRequest,
+            ApiErrorType::UnknownError => Status::InternalServerError,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize)]

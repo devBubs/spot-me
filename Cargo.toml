@@ -9,6 +9,10 @@ aws-sdk-dynamodb = "0.24.0"
 tokio = { version = "1", features = ["full"] }
 serde = "1.0.130"
 reqwest = "0.11.16"
+jwt = "0.16.0"
+hmac = "0.12.1"
+sha2 = "0.10.6"
+
 
 [dependencies.rocket]
 version = "0.5.0-rc.2"
