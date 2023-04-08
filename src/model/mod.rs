@@ -12,7 +12,7 @@ pub struct OauthUserInfo {
     pub email: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, FromFormField)]
 pub enum OauthProvider {
     GOOGLE = 0,
     GITHUB = 1,
@@ -45,4 +45,9 @@ pub struct CatalogItem {
 pub enum CatalogItemType {
     GLOBAL = 0,
     USER = 1,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct AccessToken {
+    pub access_token: String,
 }

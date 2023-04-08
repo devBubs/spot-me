@@ -1,4 +1,3 @@
-use rocket::http::Status;
 use rocket::response::{self, Responder};
 use rocket::serde::json::Json;
 use rocket::Request;
@@ -17,11 +16,6 @@ impl<T> ApiResult<T> {
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for ApiErrorType {
     fn respond_to(self, req: &'r Request<'_>) -> response::Result<'o> {
-        match self {
-            ApiErrorType::AuthenticationError => Status::Unauthorized.respond_to(req),
-            ApiErrorType::AuthorizationError => Status::Forbidden.respond_to(req),
-            ApiErrorType::ValidationError => Status::BadRequest.respond_to(req),
-            _ => Status::InternalServerError.respond_to(req),
-        }
+        self.get_status().respond_to(req)
     }
 }

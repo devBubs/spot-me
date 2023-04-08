@@ -14,6 +14,7 @@ pub struct RustyConfig {
     pub google_client_secret: String,
     pub aws_client_id: String,
     pub aws_client_secret: String,
+    pub rocket_secret: String,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -36,11 +37,9 @@ pub async fn get_rusty_config() -> RustyConfig {
         .focus(profile)
         .extract()
         .expect("Config not found");
+    let rocket_secret = fetch_from_file(&config.rocket_secret_key_uri).await;
     if let "release" = profile {
-        env::set_var(
-            "ROCKET_SECRET_KEY",
-            fetch_from_file(&config.rocket_secret_key_uri).await,
-        );
+        env::set_var("ROCKET_SECRET_KEY", rocket_secret.clone());
     }
     RustyConfig {
         google_redirection_url: config.google_redirection_url,
@@ -48,6 +47,7 @@ pub async fn get_rusty_config() -> RustyConfig {
         google_client_secret: fetch_from_file(&config.google_client_secret_uri).await,
         aws_client_id: fetch_from_file(&config.aws_client_id_uri).await,
         aws_client_secret: fetch_from_file(&config.aws_client_secret_uri).await,
+        rocket_secret,
     }
 }
 
