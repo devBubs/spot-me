@@ -39,6 +39,7 @@ pub struct UserUpsertRequest {
     pub first_name: String,
     pub last_name: String,
     pub email: String,
+    pub picture: String,
 }
 
 #[derive(Serialize, Deserialize)]

@@ -51,16 +51,23 @@ struct EmailMetadata {
 struct EmailMetadataSource {
     id: String,
 }
+
+#[derive(Debug, Deserialize, Serialize)]
+struct Photo {
+    url: Option<String>,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 struct Person {
     names: Option<Vec<Name>>,
     #[serde(alias = "emailAddresses")]
     email_addresses: Option<Vec<Email>>,
+    photos: Option<Vec<Photo>>,
 }
 pub async fn get_info(access_token: &str) -> OauthUserInfo {
     let client = reqwest::Client::new();
     let res = client
-        .get("https://people.googleapis.com/v1/people/me?personFields=names,emailAddresses")
+        .get("https://people.googleapis.com/v1/people/me?personFields=names,emailAddresses,photos")
         .header("Authorization", format!("Bearer {}", access_token))
         .send()
         .await
@@ -73,10 +80,12 @@ pub async fn get_info(access_token: &str) -> OauthUserInfo {
         .as_ref()
         .and_then(|e| e.first())
         .unwrap();
+    let picture = person.photos.as_ref().and_then(|e| e.first()).unwrap();
     OauthUserInfo {
         uid: email.metadata.source.id.clone(),
         first_name: name.first_name.as_ref().unwrap().clone(),
         last_name: name.last_name.as_ref().unwrap().clone(),
         email: email.value.as_ref().unwrap().clone(),
+        picture: picture.url.as_ref().unwrap().clone(),
     }
 }
