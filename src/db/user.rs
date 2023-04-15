@@ -2,54 +2,36 @@ use crate::model::{io::UserUpsertRequest, OauthProvider, OauthUserInfo, User};
 use aws_sdk_dynamodb::{
     model::{
         AttributeValue::{self, M, S},
-        ReturnValue,
+        ReturnValue, TransactWriteItem, Update,
     },
     Client,
 };
 use std::collections::HashMap;
 use uuid::Uuid;
 
-const TABLE_NAME: &str = "spot-me.user";
-// TODO: move to db
-const LOGGED_OUT_USER_ID: &str = "a9b8101a-8222-4004-a4ba-70a9e2d6a974";
-const LOGGED_OUT_USER_FIRST_NAME: &str = "Annonymous";
-const LOGGED_OUT_USER_LAST_NAME: &str = "Guest";
-const LOGGED_OUT_EMAIL: &str = "dummy@dummy.com";
-
-pub async fn get_id(client: &Client, provider: &OauthProvider, uid: &str) -> Option<User> {
-    // TODO: redesign user table to make provider+uid lookup efficient
-    // TODO: implement this using the gsi
-    let users = fetch_all(client).await;
-    let matched_users = users
-        .into_iter()
-        .filter(|user| {
-            if let Some(current_uid) = user.connected_accounts.get(&provider.to_string()) {
-                return uid.eq(current_uid);
-            } else {
-                return false;
-            }
-        })
-        .collect::<Vec<User>>();
-    if matched_users.len() > 1 {
-        panic!("Duplicate users found!!!");
-    }
-    matched_users.first().cloned()
-}
+const USER_TABLE_NAME: &str = "spot-me.user";
+const UID_TO_USER_TABLE_NAME: &str = "spot-me.uid_to_user";
 
 pub async fn get_or_create(
     client: &Client,
     provider: &OauthProvider,
     user_info: &OauthUserInfo,
-) -> User {
+) -> Uuid {
     let uid = user_info.uid.as_ref();
-    if let Some(user) = get_id(client, provider, uid).await {
-        return user;
+    if let Some(id) = get_id(client, provider, uid).await {
+        fetch(client, id).await.id
+    } else {
+        create(client, Uuid::new_v4(), user_info, provider, uid).await
     }
-    create(client, Uuid::new_v4(), user_info, provider, uid).await
 }
 
 pub async fn fetch_all(client: &Client) -> Vec<User> {
-    let output = client.scan().table_name(TABLE_NAME).send().await.unwrap();
+    let output = client
+        .scan()
+        .table_name(USER_TABLE_NAME)
+        .send()
+        .await
+        .unwrap();
     let items = output.items().unwrap();
     items.to_vec().iter().map(|v| convert(v)).collect()
 }
@@ -57,7 +39,7 @@ pub async fn fetch_all(client: &Client) -> Vec<User> {
 pub async fn fetch(client: &Client, id: Uuid) -> User {
     let results = client
         .get_item()
-        .table_name(TABLE_NAME)
+        .table_name(USER_TABLE_NAME)
         .key("id", S(id.to_string()))
         .send()
         .await
@@ -74,13 +56,11 @@ pub async fn create(
     input: &OauthUserInfo,
     provider: &OauthProvider,
     uid: &str,
-) -> User {
+) -> Uuid {
     let mut connected_accounts = HashMap::new();
     connected_accounts.insert(provider.to_string(), S(uid.to_owned()));
-    let result = client
-        .update_item()
-        .return_values(ReturnValue::AllNew)
-        .table_name(TABLE_NAME)
+    let user_create = Update::builder()
+        .table_name(USER_TABLE_NAME)
         .key("id", S(id.to_string()))
         .update_expression(
             "SET first_name=:first_name, last_name=:last_name, email=:email, connected_accounts=:connected_accounts, picture=:picture",
@@ -90,13 +70,25 @@ pub async fn create(
         .expression_attribute_values(":email", S(input.email.clone()))
         .expression_attribute_values(":connected_accounts", M(connected_accounts))
         .expression_attribute_values(":picture", S(input.picture.clone()))
+        .build();
+    let uid_to_user_update = Update::builder()
+        .table_name(UID_TO_USER_TABLE_NAME)
+        .key("provider", S(provider.to_string()))
+        .key("uid", S(uid.to_owned()))
+        .update_expression("SET user_id=:user_id")
+        .expression_attribute_values(":user_id", S(id.to_string()))
+        .build();
+    let user_create = TransactWriteItem::builder().update(user_create).build();
+    let uid_to_user_update = TransactWriteItem::builder()
+        .update(uid_to_user_update)
+        .build();
+    client
+        .transact_write_items()
+        .set_transact_items(Some(vec![user_create, uid_to_user_update]))
         .send()
         .await
-        .unwrap()
-        .attributes()
-        .unwrap()
-        .clone();
-    convert(&result)
+        .unwrap();
+    id
 }
 
 // TODO: There seems to a be bug with this ddb operation
@@ -116,7 +108,7 @@ pub async fn add_connected_account(
     let result = client
         .update_item()
         .return_values(ReturnValue::AllNew)
-        .table_name(TABLE_NAME)
+        .table_name(USER_TABLE_NAME)
         .key("id", S(id.to_string()))
         .update_expression("SET connected_accounts=:connected_accounts")
         .expression_attribute_values("connected_accounts", M(connected_accounts))
@@ -133,7 +125,7 @@ pub async fn update(client: &Client, id: Uuid, input: UserUpsertRequest) -> User
     let result = client
         .update_item()
         .return_values(ReturnValue::AllNew)
-        .table_name(TABLE_NAME)
+        .table_name(USER_TABLE_NAME)
         .key("id", S(id.to_string()))
         .update_expression(
             "SET first_name=:first_name, last_name=:last_name, email=:email, picture=:picture",
@@ -151,15 +143,22 @@ pub async fn update(client: &Client, id: Uuid, input: UserUpsertRequest) -> User
     convert(&result)
 }
 
-pub fn get_logged_out_user() -> User {
-    // TODO: Implement config table and put this there
-    User {
-        id: Uuid::parse_str(LOGGED_OUT_USER_ID).unwrap(),
-        first_name: LOGGED_OUT_USER_FIRST_NAME.to_owned(),
-        last_name: LOGGED_OUT_USER_LAST_NAME.to_owned(),
-        email: LOGGED_OUT_EMAIL.to_owned(),
-        connected_accounts: HashMap::new(),
-        picture: "https://e7.pngegg.com/pngimages/416/62/png-clipart-anonymous-person-login-google-account-computer-icons-user-activity-miscellaneous-computer-thumbnail.png".to_owned(),
+async fn get_id(client: &Client, provider: &OauthProvider, uid: &str) -> Option<Uuid> {
+    if let Some(item) = client
+        .get_item()
+        .table_name(UID_TO_USER_TABLE_NAME)
+        .key("provider", S(provider.to_string()))
+        .key("uid", S(uid.to_owned()))
+        .send()
+        .await
+        .unwrap()
+        .item()
+        .clone()
+    {
+        let id = item["user_id"].as_s().unwrap();
+        Uuid::parse_str(id).ok()
+    } else {
+        None
     }
 }
 
