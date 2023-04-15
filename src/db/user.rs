@@ -83,12 +83,13 @@ pub async fn create(
         .table_name(TABLE_NAME)
         .key("id", S(id.to_string()))
         .update_expression(
-            "SET first_name=:first_name, last_name=:last_name, email=:email, connected_accounts=:connected_accounts",
+            "SET first_name=:first_name, last_name=:last_name, email=:email, connected_accounts=:connected_accounts, picture=:picture",
         )
         .expression_attribute_values(":first_name", S(input.first_name.clone()))
         .expression_attribute_values(":last_name", S(input.last_name.clone()))
         .expression_attribute_values(":email", S(input.email.clone()))
         .expression_attribute_values(":connected_accounts", M(connected_accounts))
+        .expression_attribute_values(":picture", S(input.picture.clone()))
         .send()
         .await
         .unwrap()
@@ -134,10 +135,13 @@ pub async fn update(client: &Client, id: Uuid, input: UserUpsertRequest) -> User
         .return_values(ReturnValue::AllNew)
         .table_name(TABLE_NAME)
         .key("id", S(id.to_string()))
-        .update_expression("SET first_name=:first_name, last_name=:last_name, email=:email")
+        .update_expression(
+            "SET first_name=:first_name, last_name=:last_name, email=:email, picture=:picture",
+        )
         .expression_attribute_values(":first_name", S(input.first_name))
         .expression_attribute_values(":last_name", S(input.last_name))
         .expression_attribute_values(":email", S(input.email))
+        .expression_attribute_values(":picture", S(input.picture))
         .send()
         .await
         .unwrap()
@@ -155,6 +159,7 @@ pub fn get_logged_out_user() -> User {
         last_name: LOGGED_OUT_USER_LAST_NAME.to_owned(),
         email: LOGGED_OUT_EMAIL.to_owned(),
         connected_accounts: HashMap::new(),
+        picture: "https://e7.pngegg.com/pngimages/416/62/png-clipart-anonymous-person-login-google-account-computer-icons-user-activity-miscellaneous-computer-thumbnail.png".to_owned(),
     }
 }
 
@@ -163,6 +168,7 @@ fn convert(output: &HashMap<String, AttributeValue>) -> User {
     let first_name = output["first_name"].as_s().unwrap().to_owned();
     let last_name = output["last_name"].as_s().unwrap().to_owned();
     let email = output["email"].as_s().unwrap().to_owned();
+    let picture = output["picture"].as_s().unwrap().to_owned();
     let connected_accounts = output["connected_accounts"]
         .as_m()
         .unwrap()
@@ -175,5 +181,6 @@ fn convert(output: &HashMap<String, AttributeValue>) -> User {
         last_name,
         email,
         connected_accounts,
+        picture,
     }
 }

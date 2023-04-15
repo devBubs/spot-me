@@ -10,6 +10,7 @@ pub struct OauthUserInfo {
     pub first_name: String,
     pub last_name: String,
     pub email: String,
+    pub picture: String,
 }
 
 #[derive(Serialize, Deserialize, FromFormField)]
@@ -26,6 +27,7 @@ pub struct User {
     pub first_name: String,
     pub last_name: String,
     pub email: String,
+    pub picture: String,
     pub connected_accounts: HashMap<String, String>,
 }
 
