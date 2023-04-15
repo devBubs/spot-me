@@ -22,16 +22,14 @@ pub async fn connect(
     config: &State<RustyConfig>,
 ) -> ApiResponse<AccessToken> {
     let user_info = oauth::get_info(&token, &provider).await;
-    let user = db::user::get_or_create(client, &provider, &user_info).await;
-    respond(auth::get_access_token(
-        &user.id,
-        &config.inner().rocket_secret,
-    ))
+    let id = db::user::get_or_create(client, &provider, &user_info).await;
+    respond(auth::get_access_token(&id, &config.inner().rocket_secret))
 }
 
 #[get("/me")]
 pub async fn me(client: &State<Client>, credentials: Authenticated) -> ApiResponse<Option<User>> {
-    respond(Some(db::user::fetch(client, credentials.user_id).await))
+    let user = db::user::fetch(client, credentials.user_id).await;
+    respond(Some(user))
 }
 
 // TODO: figure out how to connect other OAuth accounts

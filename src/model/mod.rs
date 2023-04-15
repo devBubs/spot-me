@@ -21,7 +21,7 @@ pub enum OauthProvider {
     FACEBOOK = 3,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct User {
     pub id: Uuid,
     pub first_name: String,
@@ -29,6 +29,13 @@ pub struct User {
     pub email: String,
     pub picture: String,
     pub connected_accounts: HashMap<String, String>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct UidToUserMapping {
+    pub provider: String,
+    pub uid: String,
+    pub user_id: String,
 }
 
 #[derive(Serialize, Deserialize)]
